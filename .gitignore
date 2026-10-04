@@ -1,0 +1,22 @@
+# Python caches and local environments
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Private configuration and generated reports
+.env
+.env.*
+!.env.example
+output/
+*.xlsx
+*.xls
+*.csv
+*.log
+
+# Editors and operating-system files
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
