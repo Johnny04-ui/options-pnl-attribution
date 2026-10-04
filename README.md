@@ -1,22 +1,36 @@
 # Options P&L Attribution — Black-76 & Multi-Strike Put–Call Parity
 
-一个经过脱敏的期权收益归因作品集项目。它使用 Black-76 模型，将期权持仓的每日损益拆分为 Delta、Gamma、Vega、Theta 与 Residual，并使用多行权价 Put–Call Parity（PCP）估计远期价格。
+> **Derivatives analytics · Black-76 · Greeks decomposition · Robust forward estimation · Tested Python engineering**
 
-> 本仓库只包含通用计算引擎、合成示例和自动化测试。真实交易流水、持仓、账户信息、数据库配置、生产 SQL、数据供应商凭证及公司目录均未收录。
+An end-to-end options analytics engine that decomposes daily portfolio P&L into
+Delta, Gamma, Vega, Theta, and Residual components. The system combines Black-76
+pricing with a robust multi-strike put–call-parity estimator for the forward
+price, providing a transparent bridge between derivatives theory and production-
+style quantitative implementation.
 
-## 核心亮点
+The project demonstrates strong command of option pricing, implied-volatility
+inversion, Greek-based attribution, contract-life-cycle handling, robust
+statistics, and test-driven Python development. The public version contains a
+fully synthetic demo and **33 automated unit tests**.
 
-- 使用同行权价 Call/Put 根据 `C - P = exp(-rT) × (F - K)` 反推远期价格。
-- 排除目标期权自身所在的配对，再用多个外部行权价估计远期，减少机械自引用。
-- 使用 MAD（中位数绝对偏差）过滤异常远期点。
-- 通过二分法拟合隐含波动率，并明确标记模型价格区间外的边界解。
-- 支持 Delta、Gamma、Vega、Theta 与 Residual 的逐项损益勾稽。
-- 处理多空方向、ETF `Delta=1`、盘中交易、到期日和合约乘数调整。
-- 包含 33 个无需数据库、完全使用合成数据的单元测试。
+> This repository is a sanitized portfolio edition. Real trades, positions,
+> account identifiers, database configuration, production SQL, vendor credentials,
+> and organization-specific paths are intentionally excluded.
 
-## 归因公式
+## Quantitative capabilities demonstrated
 
-设期初持仓数量为 `Q`、合约乘数为 `M`、远期价格变化为 `ΔF`、隐含波动率变化为 `ΔIV`：
+- Implemented Black-76 prices and analytical Greeks for European options.
+- Recovered forward prices from matched calls and puts across multiple strikes.
+- Prevented mechanical self-reference by excluding the target option's own pair.
+- Applied median absolute deviation (MAD) filtering to reject unstable parity estimates.
+- Solved implied volatility with bounded bisection and explicit boundary diagnostics.
+- Attributed P&L across long/short positions, intraday trades, expiries, ETFs, and multiplier changes.
+- Built data-independent tests for pricing identities, sign conventions, edge cases, and daily aggregation.
+
+## Attribution framework
+
+Let `Q` be the opening position, `M` the contract multiplier, `ΔF` the forward-
+price change, and `ΔIV` the implied-volatility change:
 
 ```text
 Delta P&L = Q × M × Delta × ΔF
@@ -26,49 +40,84 @@ Theta P&L = Q × M × Theta × elapsed_days / 365
 Residual  = Actual P&L - Delta - Gamma - Vega - Theta
 ```
 
-Residual 是勾稽项，可能包含高阶项、波动率曲面变化、日频离散误差与模型误差；它不能单独证明输入数据正确。
+Residual is treated as a reconciliation term. It may contain higher-order effects,
+volatility-surface dynamics, discrete-time approximation error, and model error;
+it is not used as a substitute for input-data validation.
 
-## 项目结构
+## System design
+
+```text
+market quotes + positions
+          |
+          v
+multi-strike put-call parity -> robust forward estimate
+          |
+          v
+Black-76 implied volatility and Greeks
+          |
+          v
+Delta / Gamma / Vega / Theta attribution
+          |
+          v
+daily reconciliation and history utilities
+```
+
+## Repository structure
 
 ```text
 trade_attribution/
-├── black76.py          # Black-76 定价、Greeks 与隐含波动率拟合
-├── parity_forward.py   # 单 K PCP 与多 K 稳健远期
-├── option_terms.py     # 历史行权价与合约乘数调整
-├── calculation.py      # 持仓和盘中交易收益归因
-├── daily_history.py    # 每日汇总与增量结果工具
-└── models.py           # 数据结构
+├── black76.py          # Black-76 pricing, Greeks, and IV inversion
+├── parity_forward.py   # Single- and multi-strike parity forward estimates
+├── option_terms.py     # Historical strike and multiplier adjustments
+├── calculation.py      # Position and intraday-trade attribution
+├── daily_history.py    # Daily aggregation and incremental history tools
+└── models.py           # Typed domain data structures
 examples/
-└── demo_synthetic.py   # 完全合成、可直接运行的演示
-tests/                  # 33 个合成数据单元测试
+└── demo_synthetic.py   # Fully synthetic, directly runnable example
+tests/                  # 33 synthetic unit tests
 ```
 
-## 快速开始
+## Quick start
 
 ```bash
 python -m venv .venv
-# Windows: .venv\Scripts\activate
-# macOS/Linux: source .venv/bin/activate
+
+# Windows
+.venv\Scripts\activate
+
+# macOS / Linux
+source .venv/bin/activate
+
 pip install -r requirements.txt
 python examples/demo_synthetic.py
 python -m unittest discover -s tests -v
 ```
 
-演示数据由代码现场生成，不对应任何真实账户、客户、证券或交易。
+The demo data are generated at runtime and do not correspond to any real account,
+client, security, or transaction.
 
-## 脱敏边界
+## Sanitization boundary
 
-公开版刻意排除了以下内容：
+The public repository excludes:
 
-- 真实委托、成交、持仓及收益结果文件；
-- API Token、`.env`、数据库主机名、用户名与密码；
-- 内部数据库表名、字段映射和生产查询；
-- 公司名称、个人路径、账户号及组合编号；
-- 虚拟环境、缓存、日志和供应商数据。
+- real orders, executions, positions, and realized P&L files;
+- API tokens, `.env` files, database hosts, users, and passwords;
+- internal table names, field mappings, and production queries;
+- company names, local personal paths, account numbers, and portfolio identifiers;
+- virtual environments, caches, logs, and vendor datasets.
 
-如果要接入真实数据，应在私有环境中编写适配器，将行情与持仓转换为 `models.py` 中的数据对象；不要把凭证写进代码。
+Real-data integration should be implemented privately through adapters that map
+approved market and position data into the domain objects in `models.py`.
 
-## 免责声明
+## 中文简介
 
-本项目用于研究与技术展示，不构成投资建议，也不是可直接部署的交易或风险系统。结果会受到模型假设、数据质量、交易成本和流动性等因素影响。
+本项目实现了一个经过脱敏的期权收益归因引擎，使用 Black-76 模型与多行权价
+Put–Call Parity，将每日损益拆分为 Delta、Gamma、Vega、Theta 与 Residual。
+代码包含完全合成的演示数据和 33 个自动化测试，重点展示衍生品建模、稳健估计、
+边界条件处理和可复现的软件工程能力。
 
+## Disclaimer
+
+This project is intended for research and technical demonstration. It is not
+investment advice or a deployable trading or risk system. Results depend on model
+assumptions, data quality, transaction costs, and market liquidity.
